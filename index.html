@@ -30,7 +30,7 @@
     .warn{color:#92400e;background:#fff7ed;padding:8px;border-radius:8px;border:1px solid #ffedd5;margin-top:10px}
     .actions-row{display:flex;gap:8px;align-items:center;margin-top:12px}
     .small{font-size:13px;color:var(--muted)}
-    .saved-note{font-size:13px;color:#065f46;background:#ecfdf5;padding:8px;border-radius:8px;border:1px solid #bbf7d0;margin-top:10px}
+    .saved-note{font-size:13px;color:#065f46;background:#ecfdf5;padding:8px;border-radius:8px;border:1px solid:#bbf7d0;margin-top:10px}
     @media(max-width:880px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -114,7 +114,7 @@
       </div>
 
       <div class="buttons">
-        <button id="calc" class="btn btn-primary">Calculate split</button>
+        <button id="calc" type="button" class="btn btn-primary">Calculate split</button>
         <button id="reset" type="button" class="btn btn-ghost">Reset fields</button>
         <button id="download" type="button" class="btn btn-muted">Download CSV</button>
         <button id="clearSaved" type="button" class="btn btn-ghost">🗑 Clear saved data</button>
@@ -131,8 +131,33 @@
     const $ = id => document.getElementById(id);
     function money(x){return (Math.round((x+Number.EPSILON)*100)/100).toFixed(2)}
 
-    // Local storage keys
+    // Local storage key
     const LS_KEY = 'billSplitter.readings.v1';
+
+    // Safe init after DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        console.log('Init bill-splitter');
+        bindButtons();
+        loadSaved();
+      } catch (e) {
+        console.error('Init error', e);
+      }
+    });
+
+    function bindButtons(){
+      const calcBtn = $('calc');
+      const resetBtn = $('reset');
+      const downloadBtn = $('download');
+      const clearBtn = $('clearSaved');
+
+      if(calcBtn) calcBtn.addEventListener('click', compute);
+      if(resetBtn) resetBtn.addEventListener('click', resetFields);
+      if(downloadBtn) downloadBtn.addEventListener('click', downloadCSV);
+      if(clearBtn) clearBtn.addEventListener('click', () => {
+        if (confirm('Clear saved readings from this browser?')) clearSaved();
+      });
+    }
 
     // Load saved previous readings on start
     function loadSaved(){
@@ -143,11 +168,7 @@
         ['g_prev','g_curr','g_bill','gsub_prev','gsub_curr','t_prev','t_curr','t_bill','tsub_prev','tsub_curr'].forEach(k=>{
           if(s[k] !== undefined) $(k).value = s[k];
         });
-        // show small saved note
-        const note = document.createElement('div');
-        note.className = 'saved-note';
-        note.textContent = 'Previous readings loaded from saved data.';
-        document.getElementById('results').appendChild(note);
+        showSavedNote('Previous readings loaded from saved data.');
       }catch(e){ console.warn('failed to load saved', e) }
     }
 
@@ -191,8 +212,7 @@
     function downloadCSVFromData(data){
       const rows = ['Family,Floor,Units,Amount'];
       data.forEach(f => rows.push(`${f.name},${f.floor},${f.units},${f.amount}`));
-      const blob = new Blob([rows.join('
-')], {type:'text/csv'});
+      const blob = new Blob([rows.join('\n')], {type:'text/csv'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'bill-split.csv'; a.click(); URL.revokeObjectURL(url);
     }
@@ -258,9 +278,8 @@
 
       // store last calc for CSV or save action
       window._lastCalc = {families, meters};
-
-      // show the Save button (not intrusive) after calculation
-      showSaveControls();
+      // show the Save button (renderResults adds controls)
+      console.log('Compute finished, lastCalc stored.');
     }
 
     // Render results UI
@@ -295,22 +314,18 @@
       ctrl.id = 'save-controls';
       ctrl.innerHTML = `
         <div style="display:flex;gap:8px;align-items:center">
-          <button id="saveReadings" class="btn btn-primary">💾 Save Readings</button>
-          <button id="downloadCSV2" class="btn btn-ghost">⬇️ Download CSV</button>
+          <button id="saveReadings" type="button" class="btn btn-primary">💾 Save Readings</button>
+          <button id="downloadCSV2" type="button" class="btn btn-ghost">⬇️ Download CSV</button>
           <div class="small" style="margin-left:8px;color:var(--muted)">You can save these readings as "previous" for next time.</div>
         </div>
       `;
       r.appendChild(ctrl);
 
-      // hook buttons
-      $('downloadCSV2').addEventListener('click', ()=>downloadCSVFromData(families));
-      $('saveReadings').addEventListener('click', saveReadings);
-    }
-
-    function showSaveControls(){
-      // ensure save-controls is visible (renderResults creates it)
-      const sc = document.getElementById('save-controls');
-      if(sc) sc.style.display='flex';
+      // hook buttons safely
+      const saveBtn = $('saveReadings');
+      const dlBtn = $('downloadCSV2');
+      if(dlBtn) dlBtn.addEventListener('click', ()=>downloadCSVFromData(families));
+      if(saveBtn) saveBtn.addEventListener('click', saveReadings);
     }
 
     // Reset fields (clear inputs but not saved data)
@@ -325,15 +340,6 @@
       if(window._lastCalc && window._lastCalc.families) downloadCSVFromData(window._lastCalc.families);
       else alert('Please calculate first to generate CSV.');
     }
-
-    // Bind buttons
-    $('calc').addEventListener('click', compute);
-    $('reset').addEventListener('click', resetFields);
-    $('download').addEventListener('click', downloadCSV);
-    $('clearSaved').addEventListener('click', ()=>{ if(confirm('Clear saved readings from this browser?')){ clearSaved(); } });
-
-    // Load saved values on page load
-    loadSaved();
 
   </script>
 </body>
