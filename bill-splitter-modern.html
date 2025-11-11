@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Electricity Bill Splitter</title>
+  <style>
+    /* Modern clean styles (single-file, no external deps) */
+    :root{--bg:#f3f6fb;--card:#ffffff;--muted:#6b7280;--accent:#2563eb;--accent-2:#1e40af}
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:var(--bg); margin:0; color:#0f172a}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:14px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:18px}
+    .card{background:var(--card);padding:16px;border-radius:14px;box-shadow:0 10px 30px rgba(16,24,40,0.06)}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type=number]{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef8;font-size:14px;background:#fbfdff}
+    .buttons{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+    .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+    .btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#fff}
+    .btn-ghost{background:#fff;border:1px solid #e6eef8;color:var(--accent)}
+    .btn-muted{background:#f8fafc;color:#0b1220;border:1px solid #eef2f7}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #eef2f7}
+    th{font-size:13px;color:var(--muted)}
+    .muted{color:var(--muted);font-size:13px}
+    .warn{color:#92400e;background:#fff7ed;padding:8px;border-radius:8px;border:1px solid #ffedd5;margin-top:10px}
+    .actions-row{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .small{font-size:13px;color:var(--muted)}
+    .saved-note{font-size:13px;color:#065f46;background:#ecfdf5;padding:8px;border-radius:8px;border:1px solid #bbf7d0;margin-top:10px}
+    @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="width:56px;height:56px;background:linear-gradient(180deg,#e6f0ff,#eaf4ff);display:flex;align-items:center;justify-content:center;border-radius:12px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="1.8"><path d="M12 2v20M4 10h16M8 6h8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+      <div>
+        <h1>Electricity Bill Splitter</h1>
+        <p class="lead">Enter previous/current readings and bill amounts for Ground &amp; 2nd floor. Use the Save button after calculation to keep readings for next time.</p>
+      </div>
+    </header>
+
+    <form id="form" onsubmit="return false;">
+      <div class="grid">
+        <!-- Ground floor -->
+        <div class="card">
+          <h3 style="margin:0 0 10px 0">Ground floor (Main meter + sub-meter)</h3>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>Previous reading (units)</label>
+              <input id="g_prev" type="number" min="0" step="1" />
+            </div>
+            <div>
+              <label>Current reading (units)</label>
+              <input id="g_curr" type="number" min="0" step="1" />
+            </div>
+            <div>
+              <label>Total bill amount (₹)</label>
+              <input id="g_bill" type="number" min="0" step="0.01" />
+            </div>
+            <div></div>
+
+            <div style="grid-column:1 / -1;height:8px"></div>
+
+            <div>
+              <label>Ground sub-meter — Previous</label>
+              <input id="gsub_prev" type="number" min="0" step="1" />
+            </div>
+            <div>
+              <label>Ground sub-meter — Current</label>
+              <input id="gsub_curr" type="number" min="0" step="1" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 2nd floor -->
+        <div class="card">
+          <h3 style="margin:0 0 10px 0">2nd floor (Main meter + sub-meter)</h3>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>Previous reading (units)</label>
+              <input id="t_prev" type="number" min="0" step="1" />
+            </div>
+            <div>
+              <label>Current reading (units)</label>
+              <input id="t_curr" type="number" min="0" step="1" />
+            </div>
+            <div>
+              <label>Total bill amount (₹)</label>
+              <input id="t_bill" type="number" min="0" step="0.01" />
+            </div>
+            <div></div>
+
+            <div style="grid-column:1 / -1;height:8px"></div>
+
+            <div>
+              <label>2nd sub-meter — Previous</label>
+              <input id="tsub_prev" type="number" min="0" step="1" />
+            </div>
+            <div>
+              <label>2nd sub-meter — Current</label>
+              <input id="tsub_curr" type="number" min="0" step="1" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="calc" class="btn btn-primary">Calculate split</button>
+        <button id="reset" type="button" class="btn btn-ghost">Reset fields</button>
+        <button id="download" type="button" class="btn btn-muted">Download CSV</button>
+        <button id="clearSaved" type="button" class="btn btn-ghost">🗑 Clear saved data</button>
+      </div>
+
+    </form>
+
+    <div id="results" style="margin-top:18px"></div>
+
+  </div>
+
+  <script>
+    // Helper
+    const $ = id => document.getElementById(id);
+    function money(x){return (Math.round((x+Number.EPSILON)*100)/100).toFixed(2)}
+
+    // Local storage keys
+    const LS_KEY = 'billSplitter.readings.v1';
+
+    // Load saved previous readings on start
+    function loadSaved(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return;
+        const s = JSON.parse(raw);
+        ['g_prev','g_curr','g_bill','gsub_prev','gsub_curr','t_prev','t_curr','t_bill','tsub_prev','tsub_curr'].forEach(k=>{
+          if(s[k] !== undefined) $(k).value = s[k];
+        });
+        // show small saved note
+        const note = document.createElement('div');
+        note.className = 'saved-note';
+        note.textContent = 'Previous readings loaded from saved data.';
+        document.getElementById('results').appendChild(note);
+      }catch(e){ console.warn('failed to load saved', e) }
+    }
+
+    // Save current readings into localStorage (saves all fields as they are now)
+    function saveReadings(){
+      const payload = {
+        g_prev: $('g_prev').value || '',
+        g_curr: $('g_curr').value || '',
+        g_bill: $('g_bill').value || '',
+        gsub_prev: $('gsub_prev').value || '',
+        gsub_curr: $('gsub_curr').value || '',
+        t_prev: $('t_prev').value || '',
+        t_curr: $('t_curr').value || '',
+        t_bill: $('t_bill').value || '',
+        tsub_prev: $('tsub_prev').value || '',
+        tsub_curr: $('tsub_curr').value || ''
+      };
+      try{
+        localStorage.setItem(LS_KEY, JSON.stringify(payload));
+        showSavedNote('Readings saved. They will auto-fill next time you open this page.');
+      }catch(e){ alert('Unable to save readings: ' + (e.message || e)); }
+    }
+
+    function clearSaved(){
+      localStorage.removeItem(LS_KEY);
+      showSavedNote('Saved readings cleared.');
+    }
+
+    function showSavedNote(text){
+      const r = $('results');
+      // remove older saved-notes
+      Array.from(r.querySelectorAll('.saved-note')).forEach(n=>n.remove());
+      const note = document.createElement('div');
+      note.className = 'saved-note';
+      note.textContent = text;
+      r.prepend(note);
+      setTimeout(()=>{ try{ note.remove(); }catch(e){} }, 4000);
+    }
+
+    // CSV download helper
+    function downloadCSVFromData(data){
+      const rows = ['Family,Floor,Units,Amount'];
+      data.forEach(f => rows.push(`${f.name},${f.floor},${f.units},${f.amount}`));
+      const blob = new Blob([rows.join('
+')], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'bill-split.csv'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    // Compute split
+    function compute(){
+      const g_prev = Number($('g_prev').value || 0);
+      const g_curr = Number($('g_curr').value || 0);
+      const g_bill = Number($('g_bill').value || 0);
+      const gsub_prev = Number($('gsub_prev').value || 0);
+      const gsub_curr = Number($('gsub_curr').value || 0);
+
+      const t_prev = Number($('t_prev').value || 0);
+      const t_curr = Number($('t_curr').value || 0);
+      const t_bill = Number($('t_bill').value || 0);
+      const tsub_prev = Number($('tsub_prev').value || 0);
+      const tsub_curr = Number($('tsub_curr').value || 0);
+
+      const g_units = g_curr - g_prev;
+      const gsub_units = gsub_curr - gsub_prev;
+      const t_units = t_curr - t_prev;
+      const tsub_units = tsub_curr - tsub_prev;
+
+      const warnings = [];
+      if(g_units < 0) warnings.push('Ground: current reading less than previous');
+      if(gsub_units < 0) warnings.push('Ground sub-meter: current reading less than previous');
+      if(t_units < 0) warnings.push('2nd floor: current reading less than previous');
+      if(tsub_units < 0) warnings.push('2nd floor sub-meter: current reading less than previous');
+      if(gsub_units > g_units) warnings.push('Ground: sub-meter units exceed main-meter units');
+      if(tsub_units > t_units) warnings.push('2nd floor: sub-meter units exceed main-meter units');
+
+      // Ground split
+      let g_familyA_units = 0, g_familyB_units = 0, g_familyA_amt = 0, g_familyB_amt = 0;
+      if(g_units > 0){
+        g_familyA_units = Math.max(0, gsub_units);
+        g_familyB_units = g_units - g_familyA_units;
+        g_familyA_amt = (g_familyA_units / g_units) * g_bill;
+        g_familyB_amt = g_bill - g_familyA_amt;
+      }
+
+      // 2nd floor split
+      let t_familyC_units = 0, t_familyD_units = 0, t_familyC_amt = 0, t_familyD_amt = 0;
+      if(t_units > 0){
+        t_familyC_units = Math.max(0, tsub_units);
+        t_familyD_units = t_units - t_familyC_units;
+        t_familyC_amt = (t_familyC_units / t_units) * t_bill;
+        t_familyD_amt = t_bill - t_familyC_amt;
+      }
+
+      const families = [
+        {name:'Family A (Ground - sub)', floor:'Ground', units:g_familyA_units, amount:money(g_familyA_amt)},
+        {name:'Family B (Ground - rem)', floor:'Ground', units:g_familyB_units, amount:money(g_familyB_amt)},
+        {name:'Family C (2nd - sub)', floor:'2nd', units:t_familyC_units, amount:money(t_familyC_amt)},
+        {name:'Family D (2nd - rem)', floor:'2nd', units:t_familyD_units, amount:money(t_familyD_amt)}
+      ];
+
+      const meters = [
+        {meter:'Ground', units:g_units, bill:money(g_bill)},
+        {meter:'2nd', units:t_units, bill:money(t_bill)}
+      ];
+
+      renderResults({families, meters, warnings});
+
+      // store last calc for CSV or save action
+      window._lastCalc = {families, meters};
+
+      // show the Save button (not intrusive) after calculation
+      showSaveControls();
+    }
+
+    // Render results UI
+    function renderResults({families, meters, warnings}){
+      const r = $('results');
+      r.innerHTML = '';
+
+      if(warnings && warnings.length){
+        const w = document.createElement('div'); w.className='warn'; w.textContent = '⚠️ ' + warnings.join(' • ');
+        r.appendChild(w);
+      }
+
+      const tableWrap = document.createElement('div'); tableWrap.className='card';
+      const html = [];
+      html.push('<h3 style="margin:0 0 10px 0">Family splits</h3>');
+      html.push('<table><thead><tr><th>Family</th><th>Floor</th><th>Units</th><th>Share (₹)</th></tr></thead><tbody>');
+      families.forEach(f=> html.push(`<tr><td>${f.name}</td><td>${f.floor}</td><td>${f.units}</td><td>₹${f.amount}</td></tr>`));
+      html.push('</tbody></table>');
+      tableWrap.innerHTML = html.join('');
+      r.appendChild(tableWrap);
+
+      const meterWrap = document.createElement('div'); meterWrap.className='card';
+      let mh = '<h3 style="margin:0 0 10px 0">Per-meter totals</h3>';
+      mh += '<table><thead><tr><th>Meter</th><th>Units</th><th>Total bill (₹)</th></tr></thead><tbody>';
+      meters.forEach(m=> mh += `<tr><td>${m.meter}</td><td>${m.units}</td><td>₹${m.bill}</td></tr>`);
+      mh += '</tbody></table>';
+      meterWrap.innerHTML = mh;
+      r.appendChild(meterWrap);
+
+      // Save controls area
+      const ctrl = document.createElement('div'); ctrl.style.marginTop='10px';
+      ctrl.id = 'save-controls';
+      ctrl.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="saveReadings" class="btn btn-primary">💾 Save Readings</button>
+          <button id="downloadCSV2" class="btn btn-ghost">⬇️ Download CSV</button>
+          <div class="small" style="margin-left:8px;color:var(--muted)">You can save these readings as "previous" for next time.</div>
+        </div>
+      `;
+      r.appendChild(ctrl);
+
+      // hook buttons
+      $('downloadCSV2').addEventListener('click', ()=>downloadCSVFromData(families));
+      $('saveReadings').addEventListener('click', saveReadings);
+    }
+
+    function showSaveControls(){
+      // ensure save-controls is visible (renderResults creates it)
+      const sc = document.getElementById('save-controls');
+      if(sc) sc.style.display='flex';
+    }
+
+    // Reset fields (clear inputs but not saved data)
+    function resetFields(){
+      ['g_prev','g_curr','g_bill','gsub_prev','gsub_curr','t_prev','t_curr','t_bill','tsub_prev','tsub_curr'].forEach(k=> $(k).value='');
+      $('results').innerHTML='';
+      window._lastCalc = null;
+    }
+
+    // Download CSV from last calculation
+    function downloadCSV(){
+      if(window._lastCalc && window._lastCalc.families) downloadCSVFromData(window._lastCalc.families);
+      else alert('Please calculate first to generate CSV.');
+    }
+
+    // Bind buttons
+    $('calc').addEventListener('click', compute);
+    $('reset').addEventListener('click', resetFields);
+    $('download').addEventListener('click', downloadCSV);
+    $('clearSaved').addEventListener('click', ()=>{ if(confirm('Clear saved readings from this browser?')){ clearSaved(); } });
+
+    // Load saved values on page load
+    loadSaved();
+
+  </script>
+</body>
+</html>
